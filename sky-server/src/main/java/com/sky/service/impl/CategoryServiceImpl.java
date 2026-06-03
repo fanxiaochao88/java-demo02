@@ -1,14 +1,19 @@
 package com.sky.service.impl;
 
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
 import com.sky.context.BaseContext;
 import com.sky.dto.CategoryDTO;
+import com.sky.dto.CategoryPageQueryDTO;
 import com.sky.entity.Category;
 import com.sky.mapper.CategoryMapper;
+import com.sky.result.PageResult;
 import com.sky.service.CategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class CategoryServiceImpl implements CategoryService {
@@ -35,5 +40,19 @@ public class CategoryServiceImpl implements CategoryService {
         c.setUpdateUser(BaseContext.getCurrentId());
 
         categoryMapper.insert(c);
+    }
+
+    /**
+     * 分类分页查询
+     * @param pageDto
+     * @return
+     */
+    @Override
+    public PageResult pageQuery(CategoryPageQueryDTO pageDto) {
+        PageHelper.startPage(pageDto.getPage(), pageDto.getPageSize());
+        Page<Category> page = categoryMapper.pageQuery(pageDto);
+        long total = page.getTotal();
+        List<Category> result = page.getResult();
+        return new PageResult(total, result);
     }
 }
