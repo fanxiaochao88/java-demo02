@@ -13,6 +13,7 @@ import com.sky.utils.JwtUtil;
 import com.sky.vo.EmployeeLoginVO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -102,6 +103,23 @@ public class EmployeeController {
         log.info("员工分页查询：{}", employeePageQueryDTO);
         PageResult pageResult = employeeService.pageQuery(employeePageQueryDTO);
         return Result.success(pageResult);
+    }
+
+    /**
+     * 启用/禁用员工账号
+     *
+     * @param status
+     * @param id
+     * @return
+     */
+    @PostMapping("/status/{status}")
+    @ApiOperation(value = "修改员工启用禁用状态")
+    public Result startOrStop(
+            @ApiParam(value = "状态", required = true) @PathVariable Integer status,
+            @ApiParam(value = "员工id", required = true) @RequestParam Long id) {
+        log.info("员工状态：{}, id: {}", status,  id);
+        employeeService.startOrStop(status, id);
+        return Result.success();
     }
 
 }
