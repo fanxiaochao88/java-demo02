@@ -16,7 +16,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class DishServiceImpl implements DishService {
@@ -52,10 +56,29 @@ public class DishServiceImpl implements DishService {
      */
     @Override
     public PageResult pageQuery(DishPageQueryDTO dishPageQueryDTO) {
+        // 1 查询菜品以及左连接查询菜品分类名称
         PageHelper.startPage(dishPageQueryDTO.getPage(), dishPageQueryDTO.getPageSize());
         Page<DishVO> page = dishMapper.pageQuery(dishPageQueryDTO);
         long total = page.getTotal();
         List<DishVO> records = page.getResult();
+
+        // 2 收集所有的菜品id
+        List<Long> dishIds = records.stream().map(DishVO::getId).collect(Collectors.toList());
+
+        // 3 批量查询菜品对应的口味数据
+        List<DishFlavor> dishFlavors = dishFlavorMapper.getByDishIds(dishIds);
+
+        // 4. 按照dishId分组
+        Map<Long, List<DishFlavor>> flavorMap = new HashMap<>();
+        for (DishFlavor dishFlavor : dishFlavors) {
+            flavorMap.putIfAbsent(dishFlavor.getDishId(), new ArrayList<>());
+            flavorMap.get(dishFlavor.getDishId()).add(dishFlavor);
+        }
+
+        // 5. 封装DishVO数据
+        for (DishVO record : records) {
+            record.setFlavors(flavorMap.getOrDefault(record.getId(), new ArrayList<>()));
+        }
 
         return new PageResult(total, records);
     }

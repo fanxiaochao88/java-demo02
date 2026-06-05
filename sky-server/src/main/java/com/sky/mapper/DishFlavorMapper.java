@@ -12,4 +12,11 @@ public interface DishFlavorMapper {
      * @param flavors
      */
     void insertBatch(List<DishFlavor> flavors);
+
+    /**
+     * 根据菜品id批量查询口味数据
+     * @param dishIds
+     * @return
+     */
+    List<DishFlavor> getByDishIds(List<Long> dishIds);
 }
