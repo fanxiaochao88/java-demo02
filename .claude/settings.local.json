@@ -1,7 +1,16 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git reset *)"
+      "Bash(git reset *)",
+      "Bash(xargs git *)",
+      "Bash(redis-server --version)",
+      "Bash(redis-cli ping *)",
+      "Bash(netstat -ano)",
+      "Bash(mv \"项目整体解读.md\" \"01-项目整体解读.md\")",
+      "Bash(mv \"文件逐个解读.md\" \"02-文件逐个解读.md\")",
+      "Bash(mv \"注解详解.md\" \"03-注解详解.md\")",
+      "Bash(mv \"核心机制详解.md\" \"04-核心机制详解.md\")",
+      "Bash(mv \"Java反射详解.md\" \"05-Java反射详解.md\")"
     ]
   }
 }

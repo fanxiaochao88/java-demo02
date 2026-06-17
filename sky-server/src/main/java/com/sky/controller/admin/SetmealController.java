@@ -2,6 +2,7 @@ package com.sky.controller.admin;
 
 import com.sky.dto.SetmealDTO;
 import com.sky.dto.SetmealPageQueryDTO;
+import com.sky.entity.SetmealDish;
 import com.sky.result.PageResult;
 import com.sky.result.Result;
 import com.sky.service.SetmealService;
@@ -104,4 +105,16 @@ public class SetmealController {
         setmealService.update(setmealDTO);
         return Result.success();
     }
+
+    /**
+     * 根据分类id查询套餐
+     */
+    @GetMapping("/list")
+    @ApiOperation("根据分类id查询套餐")
+    public Result<List<SetmealVO>> list(@ApiParam("分类id") @RequestParam Long categoryId) {
+        log.info("根据分类id查询套餐：{}", categoryId);
+        return Result.success(setmealService.list(categoryId));
+    }
+
+
 }

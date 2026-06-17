@@ -172,6 +172,33 @@ public class DishServiceImpl implements DishService {
      */
     @Override
     public List<DishVO> list(Long categoryId) {
-        return dishMapper.list(categoryId);
+        // 1. 查询菜品列表
+        List<DishVO> list = dishMapper.list(categoryId);
+        if (list == null || list.isEmpty()) {
+            return list;
+        }
+
+        // 2. 收集所有菜品ID
+        List<Long> dishIds = list.stream().map(DishVO::getId).collect(Collectors.toList());
+
+        // 3. 批量查询口味数据
+        List<DishFlavor> flavors = dishFlavorMapper.getByDishIds(dishIds);
+        if (flavors == null || flavors.isEmpty()) {
+            return list;
+        }
+
+        // 4. 按dishId分组
+        Map<Long, List<DishFlavor>> flavorMap = new HashMap<>();
+        for (DishFlavor flavor : flavors) {
+            flavorMap.putIfAbsent(flavor.getDishId(), new ArrayList<>());
+            flavorMap.get(flavor.getDishId()).add(flavor);
+        }
+
+        // 5. 组装口味数据
+        for (DishVO vo : list) {
+            vo.setFlavors(flavorMap.getOrDefault(vo.getId(), new ArrayList<>()));
+        }
+
+        return list;
     }
 }

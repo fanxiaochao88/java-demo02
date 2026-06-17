@@ -74,4 +74,7 @@
         </foreach>
         and status = 1
     </select>
+    <select id="list" resultType="com.sky.vo.DishVO">
+        select * from dish where status = 1 and category_id = #{categoryId}
+    </select>
 </mapper>
