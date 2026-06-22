@@ -9,6 +9,7 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,6 +25,7 @@ public class SetmealController {
 
     @RequestMapping("/list")
     @ApiOperation("按照套餐分类查询套餐")
+    @Cacheable(value = "setmealCache", key = "#categoryId")
     public Result<List<SetmealVO>> list(@ApiParam("分类id") @RequestParam Long categoryId) {
         log.info("查询分类id：{}的套餐", categoryId);
         return Result.success(setmealService.list(categoryId));
