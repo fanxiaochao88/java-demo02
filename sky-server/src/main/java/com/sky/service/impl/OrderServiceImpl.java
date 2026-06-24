@@ -1,7 +1,10 @@
 package com.sky.service.impl;
 
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
 import com.sky.context.BaseContext;
+import com.sky.dto.OrdersPageQueryDTO;
 import com.sky.dto.OrdersPaymentDTO;
 import com.sky.dto.OrdersSubmitDTO;
 import com.sky.entity.AddressBook;
@@ -9,14 +12,17 @@ import com.sky.entity.OrderDetail;
 import com.sky.entity.Orders;
 import com.sky.entity.ShoppingCart;
 import com.sky.exception.AddressBookBusinessException;
+import com.sky.exception.OrderBusinessException;
 import com.sky.exception.ShoppingCartBusinessException;
 import com.sky.mapper.AddressBookMapper;
 import com.sky.mapper.OrderDetailsMapper;
 import com.sky.mapper.OrderMapper;
 import com.sky.mapper.ShoppingCartMapper;
+import com.sky.result.PageResult;
 import com.sky.service.OrderService;
 import com.sky.vo.OrderPaymentVO;
 import com.sky.vo.OrderSubmitVO;
+import com.sky.vo.OrderVO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -114,5 +120,76 @@ public class OrderServiceImpl implements OrderService {
                         .build();
         orderMapper.updateByNumber(orders);
         return OrderPaymentVO.builder().build();
+    }
+
+    /**
+     * 订单列表
+     * @param ordersPageQueryDTO
+     * @return
+     */
+    @Override
+    public PageResult pageQuery(OrdersPageQueryDTO ordersPageQueryDTO) {
+        // 1. 进行分页查询
+        PageHelper.startPage(ordersPageQueryDTO.getPage(), ordersPageQueryDTO.getPageSize());
+        ordersPageQueryDTO.setUserId(BaseContext.getCurrentId());
+        Page<Orders> page = orderMapper.pageQuery(ordersPageQueryDTO);
+        List<OrderVO> orderVOS = new ArrayList<>();
+        // 2. 根据分页结果遍历, 获取订单详情列表
+        if (page != null && !page.isEmpty()) {
+            for ( Orders orders : page) {
+                List<OrderDetail> orderDetailList = orderDetailsMapper.list(orders.getId());
+                OrderVO orderVO = new OrderVO();
+                BeanUtils.copyProperties(orders, orderVO);
+                orderVO.setOrderDetailList(orderDetailList);
+                orderVOS.add(orderVO);
+            }
+        }
+        // 3. 组装VO列表并返回
+        return new PageResult(page.getTotal(), orderVOS);
+    }
+
+    /**
+     * 订单详情
+     * @param id
+     * @return
+     */
+    @Override
+    public OrderVO orderDetail(Long id) {
+        // 查询订单信息
+        Orders orders = orderMapper.getById(id);
+        // 查询订单菜品详细信息
+        List<OrderDetail> orderDetailList = orderDetailsMapper.list(id);
+        // 组装VO
+        OrderVO orderVO = new OrderVO();
+        BeanUtils.copyProperties(orders, orderVO);
+        orderVO.setOrderDetailList(orderDetailList);
+        return orderVO;
+    }
+
+    @Override
+    public void cancel(Long id) {
+        // 1. 查询出来订单, 判断异常
+        Orders orders = orderMapper.getById(id);
+        // 2. 判断订单状态. >2不能取消
+        if (orders == null) {
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+        if (orders.getStatus() > 2) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+        // 3. 如果是2, 进行退款, 并且将付款状态变成退款
+        if (orders.getStatus().equals(Orders.TO_BE_CONFIRMED)) {
+            // 假设微信退款成功
+            orders.setPayStatus(Orders.REFUND);
+        }
+        // 4. 更新订单数据项
+        Orders newOrders = new Orders();
+        newOrders.setId(id);
+        newOrders.setNumber(orders.getNumber());
+        newOrders.setStatus(Orders.CANCELLED);
+        newOrders.setCancelReason("用户取消");
+        newOrders.setCancelTime(LocalDateTime.now());
+        // 5. 更新数据库最新订单
+        orderMapper.updateByNumber(newOrders);
     }
 }

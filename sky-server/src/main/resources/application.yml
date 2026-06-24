@@ -36,8 +36,8 @@ logging:
 
 sky:
   wechat:
-    appid:
-    secret:
+    appid: wx5d233844177a0685
+    secret: a3a10a813707d6f72c69a7e5932cd414
   jwt:
     # 设置jwt签名加密时使用的秘钥
     admin-secret-key: itcast
