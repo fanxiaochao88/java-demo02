@@ -30,6 +30,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class OrderServiceImpl implements OrderService {
@@ -132,6 +133,7 @@ public class OrderServiceImpl implements OrderService {
         // 1. 进行分页查询
         PageHelper.startPage(ordersPageQueryDTO.getPage(), ordersPageQueryDTO.getPageSize());
         ordersPageQueryDTO.setUserId(BaseContext.getCurrentId());
+        ordersPageQueryDTO.setStatus(ordersPageQueryDTO.getStatus());
         Page<Orders> page = orderMapper.pageQuery(ordersPageQueryDTO);
         List<OrderVO> orderVOS = new ArrayList<>();
         // 2. 根据分页结果遍历, 获取订单详情列表
@@ -170,6 +172,7 @@ public class OrderServiceImpl implements OrderService {
     public void cancel(Long id) {
         // 1. 查询出来订单, 判断异常
         Orders orders = orderMapper.getById(id);
+        Orders newOrders = new Orders();
         // 2. 判断订单状态. >2不能取消
         if (orders == null) {
             throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
@@ -180,10 +183,9 @@ public class OrderServiceImpl implements OrderService {
         // 3. 如果是2, 进行退款, 并且将付款状态变成退款
         if (orders.getStatus().equals(Orders.TO_BE_CONFIRMED)) {
             // 假设微信退款成功
-            orders.setPayStatus(Orders.REFUND);
+            newOrders.setPayStatus(Orders.REFUND);
         }
         // 4. 更新订单数据项
-        Orders newOrders = new Orders();
         newOrders.setId(id);
         newOrders.setNumber(orders.getNumber());
         newOrders.setStatus(Orders.CANCELLED);
@@ -191,5 +193,26 @@ public class OrderServiceImpl implements OrderService {
         newOrders.setCancelTime(LocalDateTime.now());
         // 5. 更新数据库最新订单
         orderMapper.updateByNumber(newOrders);
+    }
+
+    /**
+     * 再来一单
+     * @param id
+     */
+    @Override
+    public void repetition(Long id) {
+        // 1. 查询当前订单详情列表
+        List<OrderDetail> orderDetailList = orderDetailsMapper.list(id);
+        // 2. 构造购物车列表
+        List<ShoppingCart> shoppingCartList = orderDetailList.stream().map(x -> {
+            ShoppingCart shoppingCart = new ShoppingCart();
+            BeanUtils.copyProperties(x, shoppingCart, "id");
+            shoppingCart.setUserId(BaseContext.getCurrentId());
+            shoppingCart.setCreateTime(LocalDateTime.now());
+            return shoppingCart;
+        }).collect(Collectors.toList());
+        // 3. 插入购物车
+
+        shoppingCartMapper.insertBatch(shoppingCartList);
     }
 }
