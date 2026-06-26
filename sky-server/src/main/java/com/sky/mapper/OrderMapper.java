@@ -7,6 +7,8 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
+import java.util.List;
+
 @Mapper
 public interface OrderMapper {
     /**
@@ -22,4 +24,13 @@ public interface OrderMapper {
 
     @Select("select * from orders where id = #{id}")
     Orders getById(Long id);
+
+    @Select("select * from orders")
+    List<Orders> list();
+
+    /**
+     * 全量更新订单
+     * @param newOrders
+     */
+    void update(Orders newOrders);
 }
