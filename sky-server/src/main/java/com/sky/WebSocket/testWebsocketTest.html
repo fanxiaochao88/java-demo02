@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket 测试工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 700px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 16px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        /* ========== 顶部标题栏 ========== */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 20px 24px;
+        }
+        .header h1 {
+            font-size: 22px;
+            margin-bottom: 4px;
+        }
+        .header .subtitle {
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        /* ========== 连接区域 ========== */
+        .connect-bar {
+            display: flex;
+            gap: 10px;
+            padding: 16px 24px;
+            background: #fafafa;
+            border-bottom: 1px solid #eee;
+            align-items: center;
+        }
+        .connect-bar label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            white-space: nowrap;
+        }
+        .connect-bar input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color .2s;
+        }
+        .connect-bar input:focus {
+            border-color: #667eea;
+        }
+        .btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all .2s;
+            font-weight: 600;
+        }
+        .btn-connect {
+            background: #52c41a;
+            color: #fff;
+        }
+        .btn-connect:hover { background: #45aa14; }
+        .btn-connect.connected {
+            background: #ff4d4f;
+        }
+        .btn-connect.connected:hover { background: #d9363e; }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+        }
+        .status-dot.off { background: #d9d9d9; }
+        .status-dot.on { background: #52c41a; animation: pulse 1.5s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* ========== 消息展示区 ========== */
+        .message-area {
+            height: 350px;
+            overflow-y: auto;
+            padding: 16px 24px;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .message-area::-webkit-scrollbar { width: 6px; }
+        .message-area::-webkit-scrollbar-thumb {
+            background: #d9d9d9;
+            border-radius: 3px;
+        }
+
+        .msg {
+            max-width: 80%;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 14px;
+            line-height: 1.6;
+            word-break: break-all;
+            animation: fadeIn 0.25s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .msg-sent {
+            align-self: flex-end;
+            background: #667eea;
+            color: #fff;
+            border-bottom-right-radius: 2px;
+        }
+        .msg-received {
+            align-self: flex-start;
+            background: #f0f0f0;
+            color: #333;
+            border-bottom-left-radius: 2px;
+        }
+        .msg-system {
+            align-self: center;
+            background: #fff7e6;
+            color: #ad6800;
+            font-size: 12px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid #ffd591;
+        }
+        .msg-time {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 4px;
+            display: block;
+        }
+
+        .empty-hint {
+            text-align: center;
+            color: #bbb;
+            margin-top: 120px;
+            font-size: 15px;
+        }
+        .empty-hint .icon { font-size: 48px; display: block; margin-bottom: 12px; }
+
+        /* ========== 发送区 ========== */
+        .send-bar {
+            display: flex;
+            gap: 10px;
+            padding: 12px 24px;
+            border-top: 1px solid #eee;
+            background: #fafafa;
+        }
+        .send-bar input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid #d9d9d9;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color .2s;
+        }
+        .send-bar input:focus {
+            border-color: #667eea;
+        }
+        .btn-send {
+            background: #667eea;
+            color: #fff;
+        }
+        .btn-send:hover { background: #5768d4; }
+        .btn-send:disabled {
+            background: #d9d9d9;
+            cursor: not-allowed;
+        }
+
+        /* ========== 快捷操作 ========== */
+        .quick-actions {
+            display: flex;
+            gap: 6px;
+            padding: 0 24px 12px;
+            flex-wrap: wrap;
+        }
+        .quick-actions .btn {
+            background: #fff;
+            border: 1px solid #d9d9d9;
+            color: #666;
+            font-weight: 400;
+            font-size: 12px;
+            padding: 4px 12px;
+        }
+        .quick-actions .btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- 顶部 -->
+    <div class="header">
+        <h1>🔌 WebSocket 调试工具</h1>
+        <div class="subtitle">JSR-356 @ServerEndpoint("/ws/{sid}")</div>
+    </div>
+
+    <!-- 连接栏 -->
+    <div class="connect-bar">
+        <label for="sidInput">SID:</label>
+        <input id="sidInput" type="text" value="test001" placeholder="输入你的标识（sid）" />
+        <button id="connectBtn" class="btn btn-connect" onclick="toggleConnection()">
+            <span class="status-dot off" id="statusDot"></span> 连接
+        </button>
+        <span id="statusText" style="font-size:12px;color:#999;margin-left:4px;">未连接</span>
+    </div>
+
+    <!-- 消息区 -->
+    <div class="message-area" id="messageArea">
+        <div class="empty-hint" id="emptyHint">
+            <span class="icon">💬</span>
+            点击"连接"按钮建立 WebSocket 连接
+        </div>
+    </div>
+
+    <!-- 快捷操作 -->
+    <div class="quick-actions">
+        <span style="font-size:12px;color:#999;line-height:28px;margin-right:4px;">快捷消息:</span>
+        <button class="btn" onclick="quickSend('PING')">PING</button>
+        <button class="btn" onclick="quickSend('你好，我是客户端')">你好</button>
+        <button class="btn" onclick="quickSend('当前时间: ' + new Date().toLocaleTimeString())">时间戳</button>
+        <button class="btn" onclick="quickSend(JSON.stringify({type:'test', data:'hello'}))">JSON</button>
+        <button class="btn" onclick="clearMessages()">清屏</button>
+    </div>
+
+    <!-- 发送栏 -->
+    <div class="send-bar">
+        <input id="msgInput" type="text" placeholder="输入消息，按回车发送..." onkeydown="handleEnter(event)" />
+        <button id="sendBtn" class="btn btn-send" onclick="sendMessage()" disabled>发 送</button>
+    </div>
+</div>
+
+<script>
+    // ============ 状态 ============
+    let socket = null;
+    let connected = false;
+    let messageHistory = [];
+
+    // ============ DOM 引用 ============
+    const $connectBtn = document.getElementById('connectBtn');
+    const $statusDot = document.getElementById('statusDot');
+    const $statusText = document.getElementById('statusText');
+    const $sendBtn = document.getElementById('sendBtn');
+    const $msgInput = document.getElementById('msgInput');
+    const $messageArea = document.getElementById('messageArea');
+    const $emptyHint = document.getElementById('emptyHint');
+    const $sidInput = document.getElementById('sidInput');
+
+    // ============ 连接/断开 ============
+    function toggleConnection() {
+        if (connected) {
+            disconnect();
+        } else {
+            connect();
+        }
+    }
+
+    function connect() {
+        const sid = $sidInput.value.trim();
+        if (!sid) {
+            alert('请输入 SID');
+            return;
+        }
+
+        const url = 'ws://localhost:8080/ws/' + sid;
+        addMessage('system', '正在连接 ' + url + ' ...');
+
+        try {
+            socket = new WebSocket(url);
+
+            socket.onopen = function () {
+                connected = true;
+                updateUI(true);
+                addMessage('system', '✅ 连接成功！服务端已记录 sid=' + sid);
+            };
+
+            socket.onmessage = function (event) {
+                addMessage('received', event.data);
+            };
+
+            socket.onclose = function (event) {
+                connected = false;
+                updateUI(false);
+                socket = null;
+                addMessage('system', '❌ 连接已断开 (code=' + event.code + ')');
+                // 如果非正常关闭，3秒后提示
+                if (event.code !== 1000 && event.code !== 1005) {
+                    addMessage('system', '⏳ 异常断开，可尝试重新连接');
+                }
+            };
+
+            socket.onerror = function (error) {
+                console.error('WebSocket error:', error);
+                addMessage('system', '⚠️ WebSocket 发生错误，请检查服务端是否启动');
+            };
+        } catch (e) {
+            addMessage('system', '❌ 创建连接失败: ' + e.message);
+        }
+    }
+
+    function disconnect() {
+        if (socket) {
+            socket.close(1000, '客户端主动关闭');
+        }
+    }
+
+    function updateUI(isConnected) {
+        if (isConnected) {
+            $connectBtn.classList.add('connected');
+            $connectBtn.innerHTML = '<span class="status-dot on" id="statusDot"></span> 断开';
+            $statusText.innerText = '已连接';
+            $statusText.style.color = '#52c41a';
+            $sendBtn.disabled = false;
+            $sidInput.disabled = true;
+        } else {
+            $connectBtn.classList.remove('connected');
+            $connectBtn.innerHTML = '<span class="status-dot off" id="statusDot"></span> 连接';
+            $statusText.innerText = '未连接';
+            $statusText.style.color = '#999';
+            $sendBtn.disabled = true;
+            $sidInput.disabled = false;
+        }
+        // 更新 statusDot 引用（因为 innerHTML 重建了）
+        // 用 querySelector 重新获取
+    }
+
+    // ============ 发消息 ============
+    function sendMessage() {
+        const msg = $msgInput.value.trim();
+        if (!msg) return;
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+            addMessage('system', '⚠️ 未连接，无法发送');
+            return;
+        }
+
+        socket.send(msg);
+        addMessage('sent', msg);
+        $msgInput.value = '';
+        $msgInput.focus();
+    }
+
+    function quickSend(msg) {
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+            addMessage('system', '⚠️ 请先建立连接');
+            return;
+        }
+        // 支持函数式消息（比如时间戳）
+        if (typeof msg === 'function') msg = msg();
+        socket.send(msg);
+        addMessage('sent', msg);
+    }
+
+    function handleEnter(event) {
+        if (event.key === 'Enter') {
+            sendMessage();
+        }
+    }
+
+    // ============ 消息展示 ============
+    function addMessage(type, content) {
+        messageHistory.push({ type, content, time: new Date() });
+        if ($emptyHint) $emptyHint.style.display = 'none';
+
+        const div = document.createElement('div');
+        div.className = 'msg msg-' + type;
+
+        const timeStr = new Date().toLocaleTimeString();
+
+        if (type === 'sent') {
+            div.innerHTML = content + '<span class="msg-time">' + timeStr + '  📤</span>';
+        } else if (type === 'received') {
+            div.innerHTML = content + '<span class="msg-time">📥 ' + timeStr + '</span>';
+        } else {
+            // system
+            div.innerHTML = content;
+        }
+
+        $messageArea.appendChild(div);
+        // 自动滚到底部
+        $messageArea.scrollTop = $messageArea.scrollHeight;
+    }
+
+    function clearMessages() {
+        messageHistory = [];
+        $messageArea.innerHTML = '';
+        const hint = document.createElement('div');
+        hint.className = 'empty-hint';
+        hint.id = 'emptyHint';
+        hint.innerHTML = '<span class="icon">🧹</span>已清屏';
+        $messageArea.appendChild(hint);
+    }
+
+    // ============ 页面关闭时主动断开 ============
+    window.addEventListener('beforeunload', function () {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.close(1000, '页面关闭');
+        }
+    });
+</script>
+</body>
+</html>

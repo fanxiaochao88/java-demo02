@@ -1,7 +1,9 @@
 package com.sky.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
+import com.sky.WebSocket.WebSocketServer;
 import com.sky.constant.MessageConstant;
 import com.sky.context.BaseContext;
 import com.sky.dto.*;
@@ -28,6 +30,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -45,6 +48,12 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private OrderDetailsMapper orderDetailsMapper;
+
+    /**
+     * 导入websocket模块
+     */
+    @Autowired
+    private WebSocketServer webSocketServer;
 
     /**
      * 用户下单
@@ -119,6 +128,11 @@ public class OrderServiceImpl implements OrderService {
                         .number(orderNumber)
                         .build();
         orderMapper.updateByNumber(orders);
+        HashMap<Object, Object> map = new HashMap<>();
+        map.put("type", 1); // 1 是新订单提醒    2  用户催单
+        map.put("orderId", "111");
+        map.put("content", orders.getNumber());
+        webSocketServer.sendToAllClient(JSON.toJSONString(map));
         return OrderPaymentVO.builder().build();
     }
 
@@ -242,7 +256,7 @@ public class OrderServiceImpl implements OrderService {
             for (Orders orders : ordersList) {
                 if (orders.getStatus().equals(Orders.TO_BE_CONFIRMED)) {
                     orderStatisticsVO.setToBeConfirmed(orderStatisticsVO.getToBeConfirmed() + 1);
-                } else if (orders.getStatus().equals(Orders.COMPLETED)) {
+                } else if (orders.getStatus().equals(Orders.CONFIRMED)) {
                     orderStatisticsVO.setConfirmed(orderStatisticsVO.getConfirmed() + 1);
                 } else if (orders.getStatus().equals(Orders.DELIVERY_IN_PROGRESS)){
                     orderStatisticsVO.setDeliveryInProgress(orderStatisticsVO.getDeliveryInProgress() + 1);
@@ -294,6 +308,95 @@ public class OrderServiceImpl implements OrderService {
         newOrders.setRejectionReason(rejectionDTO.getRejectionReason());
         // 6. 更新新的数据
         orderMapper.update(newOrders);
+    }
+
+    /**
+     * 管理端取消订单
+     * @param ordersCancelDTO
+     */
+    @Override
+    public void adminCancel(OrdersCancelDTO ordersCancelDTO) {
+        Orders newOrders = new Orders();
+        // 1. 查询出来订单
+        Orders orders = orderMapper.getById(ordersCancelDTO.getId());
+        // 2. 判断异常(包含订单是否存在, 订单的status必须是待付款, 待派送, 派送中)
+        if (orders == null) {
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+        if (!orders.getStatus().equals(Orders.PENDING_PAYMENT) &&
+                !orders.getStatus().equals(Orders.CONFIRMED) &&
+                !orders.getStatus().equals(Orders.DELIVERY_IN_PROGRESS)) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+        // 3. 查看付款状态, 如果已付款, 退款
+        if (orders.getPayStatus().equals(Orders.PAID)) {
+            newOrders.setPayStatus(Orders.REFUND);
+        }
+        // 4. 组装心得Orders(id, status, payStatus, cancelReason, cancelTime)
+        newOrders.setId(orders.getId());
+        newOrders.setStatus(Orders.CANCELLED);
+        newOrders.setCancelReason(ordersCancelDTO.getCancelReason());
+        newOrders.setCancelTime(LocalDateTime.now());
+        // 5. 更新数据库
+        orderMapper.update(newOrders);
+    }
+
+    /**
+     * 商家派送订单
+     * @param id
+     */
+    @Override
+    public void delivery(Long id) {
+        // 1. 查询订单
+        Orders orders = orderMapper.getById(id);
+        // 2. 判断异常(订单不存在, 状态不是待派送)
+        if (orders == null || !orders.getStatus().equals(Orders.CONFIRMED)) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+        // 3. 组装orders, 设置状态为派送中
+        Orders newOrders = new Orders();
+        newOrders.setId(orders.getId());
+        newOrders.setStatus(Orders.DELIVERY_IN_PROGRESS);
+        // 4. 更新数据库
+        orderMapper.update(newOrders);
+    }
+
+    @Override
+    public void complete(Long id) {
+        // 1. 查询订单
+        Orders orders = orderMapper.getById(id);
+        // 2. 判断异常(订单不存在, 状态不是派送中)
+        if (orders == null || !orders.getStatus().equals(Orders.DELIVERY_IN_PROGRESS)) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+        // 3. 组装orders, 状态为完成
+        Orders newOrders = new Orders();
+        newOrders.setId(orders.getId());
+        newOrders.setStatus(Orders.COMPLETED);
+        newOrders.setDeliveryTime(LocalDateTime.now());
+        // 4. 更新数据库
+        orderMapper.update(newOrders);
+    }
+
+    /**
+     * 催单
+     * @param id
+     */
+    @Override
+    public void reminder(Long id) {
+        Orders orders = orderMapper.getById(id);
+        if (orders == null) {
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+        // 只有已接单和派送中可以催单
+        if (!orders.getStatus().equals(Orders.TO_BE_CONFIRMED)) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+        HashMap<Object, Object> map = new HashMap<>();
+        map.put("orderId", orders.getId());
+        map.put("type", 2);
+        map.put("content", orders.getNumber());
+        webSocketServer.sendToAllClient(JSON.toJSONString(map));
     }
 
     /**

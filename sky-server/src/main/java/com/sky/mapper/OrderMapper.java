@@ -7,6 +7,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Mapper
@@ -33,4 +34,13 @@ public interface OrderMapper {
      * @param newOrders
      */
     void update(Orders newOrders);
+
+    /**
+     * 根据订单状态和下单时间查询订单
+     * @param pendingPayment
+     * @param time
+     * @return
+     */
+    @Select("select * from orders where status = #{pendingPayment} and order_time < #{time}")
+    List<Orders> getByStatusAndOrderTimeLT(Integer pendingPayment, LocalDateTime time);
 }
