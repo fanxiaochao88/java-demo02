@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.sky.mapper.WorkspaceMapper">
+    <select id="getOrdersByTime" resultType="com.sky.entity.Orders">
+        select * from orders where order_time between #{begin} and #{end}
+    </select>
+    <select id="countUser" resultType="java.lang.Long">
+        select count(id) from user where create_time between #{begin} and #{end}
+    </select>
+</mapper>
