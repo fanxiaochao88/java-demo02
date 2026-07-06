@@ -2,7 +2,10 @@ package com.sky.controller.admin;
 
 import com.sky.result.Result;
 import com.sky.service.ReportService;
+import com.sky.vo.OrderReportVO;
+import com.sky.vo.SalesTop10ReportVO;
 import com.sky.vo.TurnoverReportVO;
+import com.sky.vo.UserReportVO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -38,5 +41,57 @@ public class ReportController {
         log.info("营业额数据统计：{}到{}", begin, end);
         TurnoverReportVO turnoverReportVO = reportService.turnoverStatistics(begin, end);
         return Result.success(turnoverReportVO);
+    }
+
+    /**
+     * 用户数据统计
+     */
+    @GetMapping("/userStatistics")
+    @ApiOperation("用户数据统计")
+    public Result<UserReportVO> userStatistics(
+            @ApiParam(value = "开始时间")
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate begin,
+            @ApiParam(value = "结束时间")
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate end
+    ) {
+        log.info("用户数据统计：{}到{}", begin, end);
+        return Result.success(reportService.userStatistics(begin, end));
+    }
+
+    /**
+     * 订单分析
+     */
+    @GetMapping("/ordersStatistics")
+    @ApiOperation("订单分析")
+    public Result<OrderReportVO> ordersStatistics(
+            @ApiParam(value = "开始时间")
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate begin,
+            @ApiParam(value = "结束时间")
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate end
+    ) {
+        log.info("订单数据统计：{}到{}", begin, end);
+        OrderReportVO orderReportVO = reportService.ordersStatistics(begin, end);
+        return Result.success(orderReportVO);
+    }
+
+    /**
+     * 菜品销量排名
+     */
+    @GetMapping("/top10")
+    @ApiOperation("菜品销量排名")
+    public Result<SalesTop10ReportVO> top10(
+            @ApiParam(value = "开始时间")
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate begin,
+            @ApiParam(value = "结束时间")
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate end
+    ) {
+        log.info("销量排名：{}到{}", begin, end);
+        return Result.success(reportService.top10(begin, end));
     }
 }
