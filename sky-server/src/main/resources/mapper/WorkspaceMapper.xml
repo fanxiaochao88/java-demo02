@@ -8,4 +8,29 @@
     <select id="countUser" resultType="java.lang.Long">
         select count(id) from user where create_time between #{begin} and #{end}
     </select>
+    <select id="countOrdersByStatus" resultType="com.sky.dto.OrdersCountDTO">
+        select
+            status,
+            count(*) as count
+        from orders
+        where
+            order_time &gt;= #{begin}
+          and order_time &lt;= #{end}
+        group by status
+        order by status
+    </select>
+    <select id="getDishReport" resultType="com.sky.dto.DishReportDTO">
+        select
+            status,
+        count(*) as sellCount
+        from dish
+        group by status
+    </select>
+    <select id="getSetmealReport" resultType="com.sky.dto.SetmealReportDTO">
+        select
+            status,
+        count(*) as sellCount
+        from setmeal
+        group by status
+    </select>
 </mapper>

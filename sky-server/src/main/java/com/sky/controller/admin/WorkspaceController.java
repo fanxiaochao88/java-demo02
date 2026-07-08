@@ -2,9 +2,7 @@ package com.sky.controller.admin;
 
 import com.sky.result.Result;
 import com.sky.service.WorkspaceService;
-import com.sky.vo.BusinessDataVO;
-import com.sky.vo.OrderOverViewVO;
-import com.sky.vo.OrderStatisticsVO;
+import com.sky.vo.*;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +25,7 @@ public class WorkspaceController {
     @ApiOperation("查询今日数据")
     public Result<BusinessDataVO> getBusinessData() {
         log.info("查询今日数据");
-        return Result.success(workspaceService.getBusinessData());
+        return Result.success(workspaceService.getBusinessData(null,  null));
     }
 
     /**
@@ -38,5 +36,25 @@ public class WorkspaceController {
     public Result<OrderOverViewVO> getOrderStatistics() {
         log.info("查询今日订单状态统计");
         return Result.success(workspaceService.getOrderStatistics());
+    }
+
+    /**
+     * 菜品统计
+     */
+    @GetMapping("/overviewDishes")
+    @ApiOperation("菜品统计")
+    public Result<DishOverViewVO> getDishStatistics() {
+        log.info("查询菜品统计");
+        return Result.success(workspaceService.getDishStatistics());
+    }
+
+    /**
+     * 套餐统计
+     */
+    @GetMapping("/overviewSetmeals")
+    @ApiOperation("套餐统计")
+    public Result<SetmealOverViewVO> getSetmealStatistics() {
+        log.info("查询套餐统计");
+        return Result.success(workspaceService.getSetmealStatistics());
     }
 }

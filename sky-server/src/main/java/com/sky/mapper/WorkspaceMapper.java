@@ -1,6 +1,8 @@
 package com.sky.mapper;
 
+import com.sky.dto.DishReportDTO;
 import com.sky.dto.OrdersCountDTO;
+import com.sky.dto.SetmealReportDTO;
 import com.sky.entity.Orders;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -33,4 +35,16 @@ public interface WorkspaceMapper {
      * @return
      */
     List<OrdersCountDTO> countOrdersByStatus(@Param("begin") LocalDateTime begin, @Param("end") LocalDateTime end);
+
+    /**
+     * 按照状态分组查询菜品
+     * @return
+     */
+    List<DishReportDTO> getDishReport();
+
+    /**
+     * 按照状态分组查询套餐
+     * @return
+     */
+    List<SetmealReportDTO> getSetmealReport();
 }
